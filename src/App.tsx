@@ -425,10 +425,33 @@ function App() {
       throw new Error("O áudio ainda não está pronto. Toque novamente para ativá-lo.");
     }
 
+    const uniqueNotes = [...new Set(midiNotes)].sort((first, second) => first - second);
+    const activeEntries = [...sustainedVoicesRef.current.entries()]
+      .sort(([first], [second]) => first - second);
+    const canRetuneInPlace = activeEntries.length === uniqueNotes.length
+      && activeEntries.every(([midi], index) => midi % 12 === uniqueNotes[index] % 12);
+
+    if (canRetuneInPlace) {
+      const now = context.currentTime;
+      const retunedVoices = uniqueNotes.map((midi, index) => {
+        const voices = activeEntries[index][1];
+        const frequency = 440 * 2 ** ((midi - 69) / 12);
+        voices.forEach(({ oscillator }, partialIndex) => {
+          oscillator.frequency.cancelScheduledValues(now);
+          oscillator.frequency.setValueAtTime(frequency * (partialIndex + 1), now);
+        });
+        return [midi, voices] as const;
+      });
+
+      sustainedVoicesRef.current.clear();
+      retunedVoices.forEach(([midi, voices]) => sustainedVoicesRef.current.set(midi, voices));
+      setActiveNotes(uniqueNotes);
+      return;
+    }
+
     releaseSustainedNotes(0.06);
     const preset = TIMBRE_PRESETS[instrument];
     const now = context.currentTime;
-    const uniqueNotes = [...new Set(midiNotes)];
 
     uniqueNotes.forEach((midi) => {
       const frequency = 440 * 2 ** ((midi - 69) / 12);
