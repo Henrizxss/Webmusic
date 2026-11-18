@@ -23,7 +23,7 @@ import {
   Webcam,
   X,
 } from "lucide-react";
-import { getNoteName, useHandTracking, type HandGesture } from "./useHandTracking";
+import { useHandTracking, type HandGesture } from "./useHandTracking";
 import { HARMONIC_FIELD } from "./musicTheory";
 
 const PIANO_NOTES = ["C", "D", "E", "F", "G", "A", "B", "C"];
@@ -36,23 +36,9 @@ const BLACK_KEYS = [
 ];
 const KEY_LABELS = ["A", "S", "D", "F", "G", "H", "J", "K"];
 const WHITE_KEY_SEMITONES = [0, 2, 4, 5, 7, 9, 11, 12];
-const GESTURE_POSITIONS = [
-  "Extrema esquerda",
-  "Esquerda",
-  "Centro-esquerda",
-  "Meio à esquerda",
-  "Meio à direita",
-  "Centro-direita",
-  "Direita",
-  "Extrema direita",
-];
-const GESTURE_GUIDE = PIANO_NOTES.map((note, index) => ({
-  note,
-  index,
-  key: KEY_LABELS[index],
-  position: GESTURE_POSITIONS[index],
-  range: `${((index * 100) / PIANO_NOTES.length).toLocaleString("pt-BR")}–${(((index + 1) * 100) / PIANO_NOTES.length).toLocaleString("pt-BR")}%`,
-}));
+function getKeyboardNoteName(noteIndex: number, octave: number): string {
+  return `${PIANO_NOTES[noteIndex]}${octave + (noteIndex === 7 ? 1 : 0)}`;
+}
 const TIMBRES = [
   "Piano elétrico",
   "Guitarra",
@@ -136,7 +122,6 @@ function App() {
   const [octave, setOctave] = useState(4);
   const [volume, setVolume] = useState(80);
   const [instrument, setInstrument] = useState<Timbre>("Piano elétrico");
-  const [chordMode, setChordMode] = useState(false);
   const [activeNotes, setActiveNotes] = useState<number[]>([]);
   const [audioError, setAudioError] = useState<string | null>(null);
   const [deviceError, setDeviceError] = useState<string | null>(null);
@@ -440,11 +425,8 @@ function App() {
     }
   }, [playSustainedNotes, releaseSustainedNotes]);
 
-  const guitarMode = instrument === "Guitarra";
   const camera = useHandTracking({
     octave,
-    guitarMode,
-    chordMode,
     onGesture: playGesture,
   });
 
@@ -524,11 +506,6 @@ function App() {
     }
   };
 
-  const toggleChordMode = () => {
-    releaseSustainedNotes();
-    setChordMode(!chordMode);
-  };
-
   const clearError = () => {
     camera.clearError();
     setAudioError(null);
@@ -542,7 +519,7 @@ function App() {
           <span className="brand-mark"><img src="/images/tkgesture-chibi.png" alt="Chibi de olho vermelho bebendo café" /></span>
           <span className="brand-name">TK<span>Gesture</span></span>
           <span className="brand-divider" />
-          <span className="brand-caption">SEU ESTÚDIO DE MÚSICA</span>
+          <span className="brand-caption">SEU INSTRUMENTO INTERATIVO</span>
         </a>
         <audio ref={audioOutputRef} className="audio-output" autoPlay aria-hidden="true" />
 
@@ -626,15 +603,13 @@ function App() {
                   <div className="camera-readout">
                     <AudioLines size={12} />
                     {camera.status.count} {camera.status.count === 1 ? "mão" : "mãos"} detectada{camera.status.count === 1 ? "" : "s"}
-                    {chordMode && camera.status.fingerCounts.length > 0 && (
+                    {camera.status.fingerCounts.length > 0 && (
                       <> · {camera.status.fingerCounts.join(" + ")} {camera.status.fingerCounts.reduce((total, count) => total + count, 0) === 1 ? "dedo" : "dedos"}</>
                     )}
                   </div>
-                  {camera.status.noteIndex !== null && (!chordMode || camera.status.chordIndex !== null) && (
-                    <div className={`note-cursor ${camera.status.pinching || camera.status.chordIndex !== null ? "note-cursor-active" : ""}`}>
-                      <span>{camera.status.chordIndex !== null
-                        ? HARMONIC_FIELD[camera.status.chordIndex].name
-                        : getNoteName(camera.status.noteIndex, octave)}</span>
+                  {camera.status.chordIndex !== null && (
+                    <div className="note-cursor note-cursor-active">
+                      <span>{HARMONIC_FIELD[camera.status.chordIndex].name}</span>
                       <span className="cursor-line" />
                     </div>
                   )}
@@ -701,7 +676,7 @@ function App() {
                 <span className="orb-ring" />
               </div>
               <div className="instrument-caption">
-                <span>NOTAS DISPONÍVEIS</span>
+                <span>NOTAS DO CAMPO HARMÔNICO</span>
                 <div>{PIANO_NOTES.slice(0, 7).map((note) => <span className="note-pill" key={note}>{note}</span>)}</div>
               </div>
             </div>
@@ -715,7 +690,6 @@ function App() {
                 setOctave(4);
                 setVolume(80);
                 setInstrument("Piano elétrico");
-                setChordMode(false);
               }}><RotateCcw size={12} /> REDEFINIR</button>
             </div>
 
@@ -742,34 +716,7 @@ function App() {
               }} />
             </div>
 
-            <div className="chord-mode-control">
-              <div>
-                <span className="control-label">Modo de execução</span>
-                <span className="controls-hint">
-                  {chordMode
-                    ? "Sete acordes com uma mão e sustentação automática."
-                    : "Notas tocadas por pinça, com sustentação sempre ativa."}
-                </span>
-              </div>
-              <button
-                type="button"
-                className={`chord-mode-toggle${chordMode ? " is-enabled" : ""}`}
-                aria-pressed={chordMode}
-                onClick={toggleChordMode}
-              >
-                {chordMode ? <Music2 size={13} /> : <Keyboard size={13} />}
-                {chordMode ? "MODO ACORDE" : "MODO NOTAS"}
-              </button>
-            </div>
-
-            <p className="sustain-auto-note">
-              <AudioLines size={13} />
-              {chordMode
-                ? "O acorde toca enquanto o gesto for reconhecido."
-                : guitarMode
-                  ? "Sustentação sempre ativa: palhete para trocar o acorde e afaste a mão para parar."
-                  : "Sustentação sempre ativa: segure a pinça para manter a nota e solte para parar."}
-            </p>
+            <p className="sustain-auto-note"><AudioLines size={13} />Modo acorde: o som permanece enquanto o gesto for reconhecido.</p>
           </section>
         </div>
 
@@ -823,118 +770,57 @@ function App() {
         <section className="gesture-guide card-surface" aria-labelledby="gesture-guide-title" data-reveal="up">
           <div className="gesture-guide-heading">
             <div>
-              <span className="section-label"><Hand size={14} /> GESTOS &amp; NOTAS</span>
-              <h2 id="gesture-guide-title">{chordMode ? "Acordes do campo harmônico" : "Toque com um gesto"}</h2>
+              <span className="section-label"><Hand size={14} /> GESTOS &amp; ACORDES</span>
+              <h2 id="gesture-guide-title">Acordes do campo harmônico</h2>
               <p className="gesture-guide-description">
-                {chordMode
-                  ? "Use apenas uma mão: reta ou inclinada para a direita seleciona C, Dm, Em e F; incline-a para a esquerda para selecionar Am, G e Bdim. Mantenha o gesto para sustentar."
-                  : `Mova o indicador na imagem para escolher uma nota. Cada faixa acende quando sua mão entra nela.${guitarMode
-                    ? " Na guitarra, palhete para trocar o acorde e afaste a mão para parar."
-                    : " Segure a pinça para manter a nota e solte para silenciar."}`}
+                Use uma mão e conte apenas os quatro dedos, sem o polegar. Mão reta ou inclinada para a direita: C, Dm, Em e F. Incline-a para a esquerda: Am, G e Bdim. Mantenha o gesto para sustentar o acorde.
               </p>
             </div>
             <div className="gesture-guide-mode">
-              {chordMode ? <Music2 size={14} /> : guitarMode ? <Guitar size={14} /> : <Keyboard size={14} />}
-              {chordMode ? "MODO ACORDE" : `MODO ${guitarMode ? "GUITARRA" : "PIANO"}`}
+              <Music2 size={14} /> MODO ACORDE
             </div>
           </div>
 
           <div className="gesture-steps" aria-label="Instruções para tocar">
             <div><span>01</span><Hand size={15} /><span>
-              {chordMode
-                ? "Vire a palma para a câmera e levante os dedos indicados na tabela."
-                : "Posicione o indicador sobre a faixa da nota."}
+              Vire a palma para a câmera e levante a quantidade de dedos indicada na tabela.
             </span></div>
-            <div><span>02</span>{chordMode ? <Music2 size={15} /> : guitarMode ? <Guitar size={15} /> : <Hand size={15} />}<span>
-              {chordMode
-                ? "Mantenha o gesto para sustentar; mude a quantidade para trocar de acorde."
-                : guitarMode
-                  ? "Palhete para trocar o acorde e retire a mão para parar."
-                  : "Mantenha o polegar e o indicador unidos para sustentar a nota."}
+            <div><span>02</span><Music2 size={15} /><span>
+              Mantenha o gesto para sustentar; mude a quantidade ou a inclinação para trocar de acorde.
             </span></div>
           </div>
 
-          {chordMode ? (
-            <div className="gesture-table-scroll">
-              <table className="gesture-table chord-gesture-table">
-                <thead>
-                  <tr>
-                    <th scope="col">ACORDE</th>
-                    <th scope="col">DEDOS</th>
-                    <th scope="col">INCLINAÇÃO</th>
-                    <th scope="col">GESTO</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {HARMONIC_FIELD.map((chord, index) => (
-                    <tr key={chord.name} className={camera.status.chordIndex === index ? "gesture-row-active" : ""}>
-                      <td><span className="gesture-note"><span className="gesture-note-key">{chord.name}</span><span>{chord.quality}</span></span></td>
-                      <td><span className="gesture-shortcut">{chord.fingerCount}</span></td>
-                      <td>{chord.tilt === "left" ? "Esquerda" : "Reta/direita"}</td>
-                      <td><span className="gesture-action"><Hand size={14} /> {chord.gesture}</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
           <div className="gesture-table-scroll">
-            <table className="gesture-table">
+            <table className="gesture-table chord-gesture-table">
               <thead>
                 <tr>
-                  <th scope="col">NOTA</th>
-                  <th scope="col">POSIÇÃO NA IMAGEM</th>
-                  <th scope="col">GESTO PARA TOCAR</th>
-                  <th scope="col">TECLADO</th>
+                  <th scope="col">ACORDE</th>
+                  <th scope="col">DEDOS</th>
+                  <th scope="col">INCLINAÇÃO</th>
+                  <th scope="col">GESTO</th>
                 </tr>
               </thead>
               <tbody>
-                {GESTURE_GUIDE.map((item) => {
-                  const noteName = getNoteName(item.index, octave);
-                  return (
-                    <tr
-                      key={item.index}
-                      className={camera.status.noteIndex === item.index ? "gesture-row-active" : ""}
-                    >
-                      <td>
-                        <span className="gesture-note">
-                          <span className="gesture-note-key">{item.note}</span>
-                          <span>{noteName}</span>
-                        </span>
-                      </td>
-                      <td>
-                        <span className="gesture-position-name">{item.position}</span>
-                        <span className="gesture-position-track" aria-hidden="true">
-                          <span style={{ left: `${((item.index + 0.5) / PIANO_NOTES.length) * 100}%` }} />
-                        </span>
-                        <span className="gesture-position-range">{item.range} da imagem</span>
-                      </td>
-                      <td>
-                        <span className="gesture-action">
-                          {guitarMode
-                            ? <><Guitar size={14} /> Palhete para trocar o acorde</>
-                            : <><Hand size={14} /> Mantenha a pinça para sustentar</>}
-                        </span>
-                      </td>
-                      <td><span className="gesture-shortcut">{item.key}</span></td>
-                    </tr>
-                  );
-                })}
+                {HARMONIC_FIELD.map((chord, index) => (
+                  <tr key={chord.name} className={camera.status.chordIndex === index ? "gesture-row-active" : ""}>
+                    <td><span className="gesture-note"><span className="gesture-note-key">{chord.name}</span><span>{chord.quality}</span></span></td>
+                    <td><span className="gesture-shortcut">{chord.fingerCount}</span></td>
+                    <td>{chord.tilt === "left" ? "Esquerda" : "Reta/direita"}</td>
+                    <td><span className="gesture-action"><Hand size={14} /> {chord.gesture}</span></td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
-          )}
           <p className="gesture-guide-footnote">
             <span className="guide-footnote-dot" />
-            {chordMode
-              ? "Os acordes são da tonalidade de Dó maior e permanecem ativos até o gesto mudar ou ser solto."
-              : "A câmera toca as notas naturais. As teclas pretas também podem ser tocadas no teclado abaixo ou com W, E, T, Y e U."}
+            Os acordes são da tonalidade de Dó maior e permanecem ativos até o gesto mudar ou ser solto.
           </p>
         </section>
 
         <section className="keyboard-card card-surface" data-reveal="up">
           <div className="keyboard-heading">
-            <div><span className="section-label"><Keyboard size={14} /> SEU TECLADO</span><span className="keyboard-subtitle">Acompanhe as notas em tempo real</span></div>
+            <div><span className="section-label"><Keyboard size={14} /> TECLADO DE APOIO</span><span className="keyboard-subtitle">Acompanhe as notas do acorde em tempo real</span></div>
             <div className="keyboard-shortcut"><span className="keyboard-dot" /> {camera.isRunning ? "Aguardando seus movimentos" : "Experimente clicar nas teclas"} <span className="shortcut-divider" /> <span className="shortcut-key">A</span> — <span className="shortcut-key">K</span> <span className="shortcut-separator">·</span> Sustenidos <span className="shortcut-key">W</span><span className="shortcut-key">E</span><span className="shortcut-key">T</span><span className="shortcut-key">Y</span><span className="shortcut-key">U</span></div>
           </div>
           <div className="piano-keyboard" role="group" aria-label="Teclado musical">
@@ -946,7 +832,7 @@ function App() {
                   key={`${note}-${index}`}
                   className={`piano-key ${activeNotes.includes(midi) ? "piano-key-active" : ""}`}
                   onClick={() => playKey(index)}
-                  aria-label={`Tocar nota ${getNoteName(index, octave)}`}
+                  aria-label={`Tocar nota ${getKeyboardNoteName(index, octave)}`}
                 >
                   <span className="white-key-label">{KEY_LABELS[index]}<span>{note}</span></span>
                 </button>
@@ -983,16 +869,8 @@ function App() {
             <span className="section-label"><Hand size={14} /> UM INSTRUMENTO. UM GESTO.</span>
             <h2 id="help-title">Como fazer música?</h2>
             <div className="help-step"><span>01</span><div><strong>Ative a câmera</strong><p>Encontre um lugar iluminado e autorize o acesso à câmera.</p></div><Check size={16} /></div>
-            <div className="help-step"><span>02</span><div><strong>Mostre sua mão</strong><p>Abra a palma diante da câmera. Mova da esquerda para a direita para percorrer as notas.</p></div><Check size={16} /></div>
-            <div className="help-step"><span>03</span><div><strong>
-              {chordMode ? "Faça o gesto do acorde" : "Sustente a nota"}
-            </strong><p>
-              {chordMode
-                ? "Use uma mão. Reta ou inclinada para a direita: 2=C, 3=Dm, 4=Em, 5=F. Inclinada para a esquerda: 2=Am, 3=G, 4=Bdim. Mantenha o gesto para sustentar."
-                : guitarMode
-                  ? "Na guitarra, palhetadas trocam o acorde. Afaste a mão que palheta para encerrar o som."
-                  : "Mantenha o polegar e o indicador unidos para sustentar a nota. Abra a mão para silenciar."}
-            </p></div><Check size={16} /></div>
+            <div className="help-step"><span>02</span><div><strong>Mostre sua mão</strong><p>Vire a palma para a câmera e levante os dedos indicados. O polegar não entra na contagem.</p></div><Check size={16} /></div>
+            <div className="help-step"><span>03</span><div><strong>Faça o gesto do acorde</strong><p>Reta ou inclinada para a direita: 1=C, 2=Dm, 3=Em, 4=F. Inclinada para a esquerda: 2=Am, 3=G, 4=Bdim. Mantenha o gesto para sustentar.</p></div><Check size={16} /></div>
             <div className="help-shortcuts"><Mic2 size={14} /> Ou use o teclado: <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><kbd>F</kbd><kbd>G</kbd><kbd>H</kbd><kbd>J</kbd><kbd>K</kbd></div>
           </section>
         </div>

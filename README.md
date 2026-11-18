@@ -4,8 +4,8 @@ TKGesture é um instrumento musical para navegador que transforma gestos da mão
 
 ## Recursos
 
-- Modo de notas com seleção pela posição do indicador e sustentação enquanto a pinça entre polegar e indicador é mantida.
 - Modo de acordes com uma mão, sustentando o acorde enquanto o gesto for reconhecido.
+- Teclado virtual e atalhos para testar notas manualmente.
 - Timbres selecionáveis, incluindo piano e guitarra.
 - Seleção de câmera e, quando compatível com o navegador, da saída de áudio.
 - Temas claro e escuro, teclado virtual e guia visual de gestos.
@@ -14,23 +14,19 @@ TKGesture é um instrumento musical para navegador que transforma gestos da mão
 
 ### Acordes
 
-Mantenha a palma voltada para a câmera. A mão reta ou inclinada para a direita usa o conjunto principal; incline-a para a esquerda para acessar o conjunto alternativo.
+Mantenha a palma voltada para a câmera. Conte os quatro dedos sem contar o polegar. A mão reta ou inclinada para a direita usa o conjunto principal; incline-a para a esquerda para acessar o conjunto alternativo.
 
 | Acorde | Dedos | Inclinação |
 | --- | ---: | --- |
-| C | 2 | Reta ou direita |
-| Dm | 3 | Reta ou direita |
-| Em | 4 | Reta ou direita |
-| F | 5 | Reta ou direita |
+| C | 1 | Reta ou direita |
+| Dm | 2 | Reta ou direita |
+| Em | 3 | Reta ou direita |
+| F | 4 | Reta ou direita |
 | Am | 2 | Esquerda |
 | G | 3 | Esquerda |
 | Bdim | 4 | Esquerda |
 
 Mantenha o gesto para sustentar o acorde; mude os dedos ou a inclinação para trocar.
-
-### Notas
-
-Mova o indicador horizontalmente para escolher uma das notas naturais. Faça uma pinça com o polegar e o indicador para tocar e mantenha-a para sustentar a nota; solte para interromper o som.
 
 ## Executar localmente
 
