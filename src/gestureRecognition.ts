@@ -37,7 +37,13 @@ export function getExtendedFingerCount(hand: HandPoint[]): number {
       && extensionRatio > 1.1;
   }).length;
 
-  return extendedFingers;
+  if (extendedFingers < FINGER_JOINTS.length) return extendedFingers;
+
+  const palmWidth = distance2D(hand[5], hand[17]);
+  const thumbSpread = distance2D(hand[4], hand[5]);
+  const thumbLength = distance2D(hand[2], hand[3]) + distance2D(hand[3], hand[4]);
+  const thumbStraightness = distance2D(hand[2], hand[4]) / Math.max(thumbLength, 0.0001);
+  return thumbStraightness > 0.8 && thumbSpread > palmWidth * 0.35 ? 5 : 4;
 }
 
 export function getChordHandTilt(hand: HandPoint[]): "left" | "neutral" {

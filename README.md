@@ -14,19 +14,19 @@ TKGesture é um instrumento musical para navegador que transforma gestos da mão
 
 ### Acordes
 
-Mantenha a palma voltada para a câmera. Conte os quatro dedos sem contar o polegar. A mão reta ou inclinada para a direita usa o conjunto principal; incline-a para a esquerda para acessar o conjunto alternativo.
+Mantenha a palma voltada para a câmera. Os gestos padrão são:
 
-| Acorde | Dedos | Inclinação |
-| --- | ---: | --- |
-| C | 1 | Reta ou direita |
-| Dm | 2 | Reta ou direita |
-| Em | 3 | Reta ou direita |
-| F | 4 | Reta ou direita |
-| Am | 2 | Esquerda |
-| G | 3 | Esquerda |
-| Bdim | 4 | Esquerda |
+| Gesto | Inclinação | Acorde inicial |
+| --- | --- | --- |
+| 1 dedo | Reta ou direita | C |
+| 2 dedos | Reta ou direita | Dm |
+| 3 dedos | Reta ou direita | Em |
+| 4 dedos | Reta ou direita | F |
+| 5 dedos (mão aberta) | Reta ou direita | G |
+| 2 dedos | Esquerda | Am |
+| 3 dedos | Esquerda | Bdim |
 
-Mantenha o gesto para sustentar o acorde; mude os dedos ou a inclinação para trocar.
+O polegar só é contado quando os quatro dedos estão estendidos e a mão está aberta. Na tabela do app, cada gesto pode ser associado a qualquer acorde maior, menor ou diminuto em uma das 12 notas cromáticas. As escolhas são salvas localmente no navegador. Mantenha o gesto para sustentar o acorde; mude os dedos ou a inclinação para trocar.
 
 ## Executar localmente
 
@@ -73,6 +73,6 @@ O TKGesture é executado no navegador e não requer banco de dados ou servidor d
 - `src/App.tsx`: interface, controles de áudio e modos musicais.
 - `src/useHandTracking.ts`: acesso à câmera, rastreamento e resposta aos gestos.
 - `src/gestureRecognition.ts`: detecção de dedos, inclinação da mão e pinça.
-- `src/musicTheory.ts`: acordes do campo harmônico e notas MIDI.
+- `src/musicTheory.ts`: catálogo cromático de acordes e mapeamentos padrão dos gestos.
 - `src/styles.css`: estilos e animações.
 - `public/images/tkgesture-chibi.png`: imagem da marca.

@@ -1,22 +1,30 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { HandLandmarker } from "@mediapipe/tasks-vision";
-import { getChordIndexForGesture, getChordPitches } from "./musicTheory";
+import {
+  getChordGestureSlot,
+  getChordOption,
+  getChordPitches,
+  type ChordGestureAssignments,
+} from "./musicTheory";
 import { getChordHandTilt, getExtendedFingerCount } from "./gestureRecognition";
 
 export interface HandGesture {
   pitches: number[];
-  chordIndex: number;
+  chordId: string;
 }
 
 interface HandTrackingOptions {
   octave: number;
+  assignments: ChordGestureAssignments;
   onGesture: (gesture: HandGesture | null) => void;
 }
 
 interface HandStatus {
   count: number;
   fingerCounts: number[];
-  chordIndex: number | null;
+  gestureId: string | null;
+  chordId: string | null;
+  chordName: string | null;
 }
 
 const CONNECTIONS = [
@@ -26,7 +34,7 @@ const CONNECTIONS = [
 ];
 const CHORD_STABLE_FRAMES = 5;
 
-export function useHandTracking({ octave, onGesture }: HandTrackingOptions) {
+export function useHandTracking({ octave, assignments, onGesture }: HandTrackingOptions) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const landmarkerRef = useRef<HandLandmarker | null>(null);
@@ -34,12 +42,12 @@ export function useHandTracking({ octave, onGesture }: HandTrackingOptions) {
   const animationRef = useRef<number | null>(null);
   const previousRef = useRef({
     sustainActive: false,
-    sustainedChordIndex: -1,
-    chordCandidate: null as number | null,
+    sustainedChordId: null as string | null,
+    chordCandidate: null as string | null,
     chordCandidateFrames: 0,
   });
   const onGestureRef = useRef(onGesture);
-  const optionsRef = useRef({ octave });
+  const optionsRef = useRef({ octave, assignments });
   const frameCountRef = useRef(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
@@ -47,7 +55,9 @@ export function useHandTracking({ octave, onGesture }: HandTrackingOptions) {
   const [status, setStatus] = useState<HandStatus>({
     count: 0,
     fingerCounts: [],
-    chordIndex: null,
+    gestureId: null,
+    chordId: null,
+    chordName: null,
   });
 
   useEffect(() => {
@@ -55,17 +65,17 @@ export function useHandTracking({ octave, onGesture }: HandTrackingOptions) {
   }, [onGesture]);
 
   useEffect(() => {
-    const nextOptions = { octave };
+    const nextOptions = { octave, assignments };
     const previousOptions = optionsRef.current;
-    if (previousOptions.octave !== octave) {
+    if (previousOptions.octave !== octave || previousOptions.assignments !== assignments) {
       if (previousRef.current.sustainActive) onGestureRef.current(null);
       previousRef.current.sustainActive = false;
-      previousRef.current.sustainedChordIndex = -1;
+      previousRef.current.sustainedChordId = null;
       previousRef.current.chordCandidate = null;
       previousRef.current.chordCandidateFrames = 0;
     }
     optionsRef.current = nextOptions;
-  }, [octave]);
+  }, [octave, assignments]);
 
   const stop = useCallback(() => {
     if (animationRef.current !== null) {
@@ -84,13 +94,13 @@ export function useHandTracking({ octave, onGesture }: HandTrackingOptions) {
 
     previousRef.current = {
       sustainActive: false,
-      sustainedChordIndex: -1,
+      sustainedChordId: null,
       chordCandidate: null,
       chordCandidateFrames: 0,
     };
     setIsRunning(false);
     setIsLoading(false);
-    setStatus({ count: 0, fingerCounts: [], chordIndex: null });
+    setStatus({ count: 0, fingerCounts: [], gestureId: null, chordId: null, chordName: null });
   }, []);
 
   const clearError = useCallback(() => setError(null), []);
@@ -170,34 +180,38 @@ export function useHandTracking({ octave, onGesture }: HandTrackingOptions) {
           const previous = previousRef.current;
           const fingerCounts = primaryHand ? [getExtendedFingerCount(primaryHand)] : [];
           const handTilt = primaryHand ? getChordHandTilt(primaryHand) : null;
-          const chordIndex = primaryHand && handTilt
-            ? getChordIndexForGesture(fingerCounts[0], handTilt)
+          const gestureSlot = primaryHand && handTilt
+            ? getChordGestureSlot(fingerCounts[0], handTilt)
             : null;
+          const chord = gestureSlot
+            ? getChordOption(optionsRef.current.assignments[gestureSlot.id])
+            : null;
+          const chordId = chord?.id ?? null;
 
-          if (chordIndex === previous.chordCandidate) {
+          if (chordId === previous.chordCandidate) {
             previous.chordCandidateFrames = Math.min(
               previous.chordCandidateFrames + 1,
               CHORD_STABLE_FRAMES,
             );
           } else {
-            previous.chordCandidate = chordIndex;
+            previous.chordCandidate = chordId;
             previous.chordCandidateFrames = 1;
           }
 
-          if (previous.chordCandidateFrames >= CHORD_STABLE_FRAMES && chordIndex !== null) {
-            if (!previous.sustainActive || previous.sustainedChordIndex !== chordIndex) {
+          if (previous.chordCandidateFrames >= CHORD_STABLE_FRAMES && chord) {
+            if (!previous.sustainActive || previous.sustainedChordId !== chord.id) {
               if (previous.sustainActive) onGestureRef.current(null);
               onGestureRef.current({
-                chordIndex,
-                pitches: getChordPitches(chordIndex, optionsRef.current.octave),
+                chordId: chord.id,
+                pitches: getChordPitches(chord, optionsRef.current.octave),
               });
               previous.sustainActive = true;
-              previous.sustainedChordIndex = chordIndex;
+              previous.sustainedChordId = chord.id;
             }
           } else if (previous.chordCandidateFrames >= CHORD_STABLE_FRAMES && previous.sustainActive) {
             onGestureRef.current(null);
             previous.sustainActive = false;
-            previous.sustainedChordIndex = -1;
+            previous.sustainedChordId = null;
           }
 
           if (canvas && context) {
@@ -231,12 +245,16 @@ export function useHandTracking({ octave, onGesture }: HandTrackingOptions) {
               const next = {
                 count: hands.length,
                 fingerCounts,
-                chordIndex,
+                gestureId: gestureSlot?.id ?? null,
+                chordId,
+                chordName: chord?.name ?? null,
               };
               return current.count === next.count
                 && current.fingerCounts.length === next.fingerCounts.length
                 && current.fingerCounts.every((count, index) => count === next.fingerCounts[index])
-                && current.chordIndex === next.chordIndex
+                && current.gestureId === next.gestureId
+                && current.chordId === next.chordId
+                && current.chordName === next.chordName
                 ? current
                 : next;
             });

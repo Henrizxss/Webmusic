@@ -24,9 +24,17 @@ import {
   X,
 } from "lucide-react";
 import { useHandTracking, type HandGesture } from "./useHandTracking";
-import { HARMONIC_FIELD } from "./musicTheory";
+import {
+  CHORD_GESTURE_SLOTS,
+  CHORD_OPTIONS,
+  DEFAULT_CHORD_ASSIGNMENTS,
+  getChordOption,
+  isChordGestureAssignments,
+  type ChordGestureAssignments,
+} from "./musicTheory";
 
 const PIANO_NOTES = ["C", "D", "E", "F", "G", "A", "B", "C"];
+const CHROMATIC_ROOTS = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
 const BLACK_KEYS = [
   { note: "C♯", semitone: 1, after: 0, keyboard: "W" },
   { note: "D♯", semitone: 3, after: 1, keyboard: "E" },
@@ -117,11 +125,41 @@ type MediaDevicesWithOutputSelection = MediaDevices & {
   selectAudioOutput?: () => Promise<MediaDeviceInfo>;
 };
 
+const CHORD_ASSIGNMENTS_STORAGE_KEY = "tkgesture.chord-gesture-assignments.v1";
+
+interface ChordAssignmentState {
+  assignments: ChordGestureAssignments;
+  storageError: string | null;
+}
+
+function loadChordAssignmentState(): ChordAssignmentState {
+  try {
+    const stored = window.localStorage.getItem(CHORD_ASSIGNMENTS_STORAGE_KEY);
+    if (!stored) {
+      return { assignments: { ...DEFAULT_CHORD_ASSIGNMENTS }, storageError: null };
+    }
+
+    const parsed: unknown = JSON.parse(stored);
+    if (!isChordGestureAssignments(parsed)) {
+      throw new Error("A configuração salva não corresponde aos gestos disponíveis.");
+    }
+    return { assignments: parsed, storageError: null };
+  } catch (caught: unknown) {
+    console.error("Não foi possível carregar os acordes dos gestos:", caught);
+    return {
+      assignments: { ...DEFAULT_CHORD_ASSIGNMENTS },
+      storageError: "Não foi possível carregar as configurações salvas. Os padrões estão ativos; edite um gesto para salvar novamente.",
+    };
+  }
+}
+
 function App() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [octave, setOctave] = useState(4);
   const [volume, setVolume] = useState(80);
   const [instrument, setInstrument] = useState<Timbre>("Piano elétrico");
+  const [chordAssignmentState, setChordAssignmentState] = useState(loadChordAssignmentState);
+  const chordAssignments = chordAssignmentState.assignments;
   const [activeNotes, setActiveNotes] = useState<number[]>([]);
   const [audioError, setAudioError] = useState<string | null>(null);
   const [deviceError, setDeviceError] = useState<string | null>(null);
@@ -137,6 +175,22 @@ function App() {
   const scrollProgressRef = useRef<HTMLSpanElement>(null);
   const timeoutRef = useRef<number | null>(null);
   const sustainedVoicesRef = useRef<Map<number, SustainedVoice[]>>(new Map());
+
+  useEffect(() => {
+    if (chordAssignmentState.storageError) return;
+    try {
+      window.localStorage.setItem(
+        CHORD_ASSIGNMENTS_STORAGE_KEY,
+        JSON.stringify(chordAssignmentState.assignments),
+      );
+    } catch (caught: unknown) {
+      console.error("Não foi possível salvar os acordes dos gestos:", caught);
+      setChordAssignmentState((current) => ({
+        ...current,
+        storageError: "Não foi possível salvar os acordes neste navegador.",
+      }));
+    }
+  }, [chordAssignmentState]);
 
   const refreshMediaDevices = useCallback(async () => {
     const mediaDevices = navigator.mediaDevices;
@@ -427,6 +481,7 @@ function App() {
 
   const camera = useHandTracking({
     octave,
+    assignments: chordAssignments,
     onGesture: playGesture,
   });
 
@@ -607,9 +662,9 @@ function App() {
                       <> · {camera.status.fingerCounts.join(" + ")} {camera.status.fingerCounts.reduce((total, count) => total + count, 0) === 1 ? "dedo" : "dedos"}</>
                     )}
                   </div>
-                  {camera.status.chordIndex !== null && (
+                  {camera.status.chordName !== null && (
                     <div className="note-cursor note-cursor-active">
-                      <span>{HARMONIC_FIELD[camera.status.chordIndex].name}</span>
+                      <span>{camera.status.chordName}</span>
                       <span className="cursor-line" />
                     </div>
                   )}
@@ -676,8 +731,8 @@ function App() {
                 <span className="orb-ring" />
               </div>
               <div className="instrument-caption">
-                <span>NOTAS DO CAMPO HARMÔNICO</span>
-                <div>{PIANO_NOTES.slice(0, 7).map((note) => <span className="note-pill" key={note}>{note}</span>)}</div>
+                <span>12 TÔNICAS CROMÁTICAS</span>
+                <div>{CHROMATIC_ROOTS.map((note) => <span className="note-pill" key={note}>{note}</span>)}</div>
               </div>
             </div>
 
@@ -771,9 +826,9 @@ function App() {
           <div className="gesture-guide-heading">
             <div>
               <span className="section-label"><Hand size={14} /> GESTOS &amp; ACORDES</span>
-              <h2 id="gesture-guide-title">Acordes do campo harmônico</h2>
+              <h2 id="gesture-guide-title">Configure os acordes dos gestos</h2>
               <p className="gesture-guide-description">
-                Use uma mão e conte apenas os quatro dedos, sem o polegar. Mão reta ou inclinada para a direita: C, Dm, Em e F. Incline-a para a esquerda: Am, G e Bdim. Mantenha o gesto para sustentar o acorde.
+                Use uma mão e conte os dedos erguidos. Mão reta ou inclinada para a direita: 1=C, 2=Dm, 3=Em, 4=F, 5=G. Incline para a esquerda: 2=Am e 3=Bdim. Edite o acorde de cada gesto na tabela.
               </p>
             </div>
             <div className="gesture-guide-mode">
@@ -786,27 +841,69 @@ function App() {
               Vire a palma para a câmera e levante a quantidade de dedos indicada na tabela.
             </span></div>
             <div><span>02</span><Music2 size={15} /><span>
-              Mantenha o gesto para sustentar; mude a quantidade ou a inclinação para trocar de acorde.
+              Mantenha o gesto para sustentar; mude a quantidade ou a inclinação para trocar de acorde. O polegar só conta quando a mão inteira está aberta.
             </span></div>
           </div>
+
+          <div className="gesture-editor-tools">
+            <p>Escolha entre acordes maiores, menores e diminutos nas 12 notas cromáticas. As alterações são salvas neste navegador.</p>
+            <button
+              className="reset-button"
+              type="button"
+              onClick={() => setChordAssignmentState({
+                assignments: { ...DEFAULT_CHORD_ASSIGNMENTS },
+                storageError: null,
+              })}
+            >
+              <RotateCcw size={12} /> RESTAURAR PADRÕES
+            </button>
+          </div>
+          {chordAssignmentState.storageError && (
+            <p className="gesture-config-error" role="alert">{chordAssignmentState.storageError}</p>
+          )}
 
           <div className="gesture-table-scroll">
             <table className="gesture-table chord-gesture-table">
               <thead>
                 <tr>
-                  <th scope="col">ACORDE</th>
+                  <th scope="col">GESTO</th>
                   <th scope="col">DEDOS</th>
                   <th scope="col">INCLINAÇÃO</th>
-                  <th scope="col">GESTO</th>
+                  <th scope="col">ACORDE TOCADO</th>
                 </tr>
               </thead>
               <tbody>
-                {HARMONIC_FIELD.map((chord, index) => (
-                  <tr key={chord.name} className={camera.status.chordIndex === index ? "gesture-row-active" : ""}>
-                    <td><span className="gesture-note"><span className="gesture-note-key">{chord.name}</span><span>{chord.quality}</span></span></td>
-                    <td><span className="gesture-shortcut">{chord.fingerCount}</span></td>
-                    <td>{chord.tilt === "left" ? "Esquerda" : "Reta/direita"}</td>
-                    <td><span className="gesture-action"><Hand size={14} /> {chord.gesture}</span></td>
+                {CHORD_GESTURE_SLOTS.map((slot) => (
+                  <tr key={slot.id} className={camera.status.gestureId === slot.id ? "gesture-row-active" : ""}>
+                    <td><span className="gesture-action"><Hand size={14} /> {slot.gesture}</span></td>
+                    <td><span className="gesture-shortcut">{slot.fingerCount}</span></td>
+                    <td>{slot.tilt === "left" ? "Esquerda" : "Reta/direita"}</td>
+                    <td>
+                      <select
+                        className="gesture-chord-select"
+                        aria-label={`Acorde para o gesto ${slot.gesture}`}
+                        value={chordAssignments[slot.id]}
+                        onChange={(event) => {
+                          const chordId = event.target.value;
+                          if (!getChordOption(chordId)) {
+                            console.error("O acorde selecionado não está disponível:", chordId);
+                            setChordAssignmentState((current) => ({
+                              ...current,
+                              storageError: "Esse acorde não está disponível. Tente escolher outra opção.",
+                            }));
+                            return;
+                          }
+                          setChordAssignmentState((current) => ({
+                            assignments: { ...current.assignments, [slot.id]: chordId },
+                            storageError: null,
+                          }));
+                        }}
+                      >
+                        {CHORD_OPTIONS.map((chord) => (
+                          <option key={chord.id} value={chord.id}>{chord.name} · {chord.quality}</option>
+                        ))}
+                      </select>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -814,7 +911,7 @@ function App() {
           </div>
           <p className="gesture-guide-footnote">
             <span className="guide-footnote-dot" />
-            Os acordes são da tonalidade de Dó maior e permanecem ativos até o gesto mudar ou ser solto.
+            Mantenha o gesto para sustentar o acorde; ao trocar de gesto, o acorde anterior é liberado.
           </p>
         </section>
 

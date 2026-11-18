@@ -204,7 +204,7 @@ button:focus-visible, input:focus-visible {
 .orb-ring { position: absolute; width: 70px; height: 70px; border: 1px solid rgba(251, 161, 142, .16); border-radius: 24px; transform: rotate(25deg); animation: orb-rotate 24s linear infinite; }
 .instrument-caption { text-align: center; }
 .instrument-caption > span { display: block; margin-bottom: 8px; color: var(--muted-2); font-size: 8px; font-weight: 650; letter-spacing: 1.15px; }
-.instrument-caption > div { display: flex; gap: 6px; }
+.instrument-caption > div { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; }
 .note-pill { width: 22px; height: 22px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 4px; background: var(--surface-soft); color: var(--text-soft); font: 500 10px "Space Grotesk", sans-serif; }
 .note-pill:nth-child(3n + 1) { border-color: rgba(237, 53, 89, .2); color: var(--accent); }
 .control-divider { height: 1px; background: var(--border); }
@@ -253,6 +253,9 @@ input[type="range"]::-moz-range-thumb { width: 8px; height: 8px; border: 2px sol
 .gesture-guide-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .gesture-guide-heading h2 { margin: 8px 0 4px; font: 500 18px/1.2 "Space Grotesk", sans-serif; letter-spacing: -.45px; }
 .gesture-guide-description { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.6; }
+.gesture-editor-tools { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 10px 0; }
+.gesture-editor-tools > p { margin: 0; color: var(--muted); font-size: 9px; line-height: 1.5; }
+.gesture-config-error { margin: 8px 0; color: #e58b9d; font-size: 9px; line-height: 1.5; }
 .gesture-guide-mode { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 6px; margin-top: 2px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface-soft); color: var(--text-soft); font-size: 8px; font-weight: 650; letter-spacing: .65px; }
 .gesture-guide-mode > svg { color: var(--accent); }
 .gesture-steps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin: 13px 0 12px; }
@@ -260,7 +263,7 @@ input[type="range"]::-moz-range-thumb { width: 8px; height: 8px; border: 2px sol
 .gesture-steps > div > span:first-child { color: var(--accent); font: 9px "Space Grotesk", sans-serif; }
 .gesture-steps > div > svg { flex: 0 0 auto; color: var(--accent); }
 .gesture-table-scroll { width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
-.gesture-table { width: 100%; min-width: 555px; border-collapse: collapse; text-align: left; }
+.gesture-table { width: 100%; min-width: 650px; border-collapse: collapse; text-align: left; }
 .gesture-table th { padding: 8px 9px; border-bottom: 1px solid var(--border-strong); color: var(--muted-2); font-size: 8px; font-weight: 650; letter-spacing: .75px; }
 .gesture-table td { height: 37px; padding: 5px 9px; border-bottom: 1px solid var(--border); color: var(--text-soft); font-size: 9px; transition: background 140ms ease; }
 .gesture-table tbody tr:last-child td { border-bottom: 0; }
@@ -275,6 +278,8 @@ input[type="range"]::-moz-range-thumb { width: 8px; height: 8px; border: 2px sol
 .gesture-action { display: inline-flex; align-items: center; gap: 6px; color: var(--text-soft); font-size: 9px; white-space: nowrap; }
 .gesture-action > svg { flex: 0 0 auto; color: var(--accent); }
 .chord-gesture-table td:nth-child(2) { white-space: normal; }
+.gesture-chord-select { width: 100%; min-width: 205px; height: 29px; padding: 0 7px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface-soft); color: var(--text-soft); font-size: 9px; }
+.gesture-chord-select option { background: var(--surface); color: var(--text); }
 .gesture-shortcut { min-width: 20px; min-height: 20px; display: inline-grid; place-items: center; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--surface-soft); color: var(--text-soft); font: 9px "Space Grotesk", sans-serif; }
 .gesture-guide-footnote { display: flex; align-items: flex-start; gap: 7px; margin: 10px 0 0; color: var(--muted); font-size: 9px; line-height: 1.6; }
 .guide-footnote-dot { flex: 0 0 auto; width: 6px; height: 6px; margin-top: 4px; border-radius: 50%; background: var(--accent); }
@@ -391,6 +396,7 @@ input[type="range"]::-moz-range-thumb { width: 8px; height: 8px; border: 2px sol
   .gesture-guide-heading { gap: 8px; }
   .gesture-guide-heading h2 { font-size: 16px; }
   .gesture-guide-description { max-width: 260px; }
+  .gesture-editor-tools { align-items: flex-start; flex-direction: column; }
   .gesture-guide-mode { padding: 6px; font-size: 7px; }
   .gesture-steps { grid-template-columns: 1fr; gap: 6px; margin: 11px 0; }
   .keyboard-card { padding: 13px 10px 11px; }
