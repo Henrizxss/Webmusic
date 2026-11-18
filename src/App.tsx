@@ -912,7 +912,7 @@ function App() {
           </div>
           <p className="gesture-guide-footnote">
             <span className="guide-footnote-dot" />
-            Mantenha o gesto para sustentar o acorde. As notas mudam suavemente entre acordes; a oitava base só muda pelo controle.
+            Mantenha o gesto para sustentar o acorde. A fundamental permanece na nota e oitava do acorde; a oitava base selecionada só muda pelo controle.
           </p>
         </section>
 

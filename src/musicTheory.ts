@@ -102,13 +102,10 @@ export function getChordPitches(
   const targetPitches = chord.intervals.map((interval) => rootMidi + interval).sort((a, b) => a - b);
   if (!previousPitches || previousPitches.length !== targetPitches.length) return targetPitches;
 
-  const lowestPitch = targetPitches[0] - 12;
-  const highestPitch = targetPitches[0] + 24;
-  const pitchChoices = targetPitches.map((pitch) => {
-    const pitchClass = pitch % 12;
-    const firstPitch = lowestPitch + ((pitchClass - lowestPitch % 12 + 12) % 12);
+  const upperPitchChoices = targetPitches.slice(1).map((pitch) => {
+    const firstPitch = rootMidi + ((pitch - rootMidi % 12 + 12) % 12);
     const choices: number[] = [];
-    for (let candidate = firstPitch; candidate <= highestPitch; candidate += 12) {
+    for (let candidate = firstPitch; candidate <= rootMidi + 24; candidate += 12) {
       choices.push(candidate);
     }
     return choices;
@@ -116,25 +113,23 @@ export function getChordPitches(
 
   let bestPitches = targetPitches;
   let bestCost = Number.POSITIVE_INFINITY;
-  for (const first of pitchChoices[0]) {
-    for (const second of pitchChoices[1]) {
-      for (const third of pitchChoices[2]) {
-        const candidate = [first, second, third].sort((a, b) => a - b);
-        if (candidate[2] - candidate[0] > 19) continue;
+  for (const third of upperPitchChoices[0]) {
+    for (const fifth of upperPitchChoices[1]) {
+      const candidate = [rootMidi, third, fifth].sort((a, b) => a - b);
+      if (candidate[2] - candidate[0] > 19) continue;
 
-        const movement = candidate.reduce(
-          (total, pitch, index) => total + Math.abs(pitch - previousPitches[index]),
-          0,
-        );
-        const distanceFromSelectedOctave = candidate.reduce(
-          (total, pitch, index) => total + Math.abs(pitch - targetPitches[index]),
-          0,
-        );
-        const cost = movement + distanceFromSelectedOctave * 0.2;
-        if (cost < bestCost) {
-          bestCost = cost;
-          bestPitches = candidate;
-        }
+      const movement = candidate.reduce(
+        (total, pitch, index) => total + Math.abs(pitch - previousPitches[index]),
+        0,
+      );
+      const distanceFromSelectedOctave = candidate.reduce(
+        (total, pitch, index) => total + Math.abs(pitch - targetPitches[index]),
+        0,
+      );
+      const cost = movement + distanceFromSelectedOctave * 0.2;
+      if (cost < bestCost) {
+        bestCost = cost;
+        bestPitches = candidate;
       }
     }
   }
