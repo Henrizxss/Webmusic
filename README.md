@@ -16,17 +16,17 @@ TKGesture é um instrumento musical para navegador que transforma gestos da mão
 
 Mantenha a palma voltada para a câmera. Os gestos padrão são:
 
-| Gesto | Inclinação | Acorde inicial |
-| --- | --- | --- |
-| 1 dedo | Reta ou direita | C |
-| 2 dedos | Reta ou direita | Dm |
-| 3 dedos | Reta ou direita | Em |
-| 4 dedos | Reta ou direita | F |
-| 5 dedos (mão aberta) | Reta ou direita | G |
-| 2 dedos | Esquerda | Am |
-| 3 dedos | Esquerda | Bdim |
+| Gesto | Acorde inicial |
+| --- | --- |
+| 1 dedo | C |
+| 2 dedos | Dm |
+| 3 dedos | Em |
+| 4 dedos | F |
+| 1 dedo, inclinação à esquerda | G |
+| 2 dedos, inclinação à esquerda | Am |
+| 3 dedos, inclinação à esquerda | Bdim |
 
-O polegar só é contado quando os quatro dedos estão estendidos e a mão está aberta. Na tabela do app, cada gesto pode ser associado a qualquer acorde maior, menor ou diminuto em uma das 12 notas cromáticas. As escolhas são salvas localmente no navegador. Mantenha o gesto para sustentar o acorde; mude os dedos ou a inclinação para trocar.
+São reconhecidos somente os quatro dedos, sem contar o polegar; abrir a mão inteira também é contado como quatro dedos. A inclinação à esquerda permite três variações adicionais. Na tabela do app, cada gesto pode ser associado a qualquer acorde maior, menor ou diminuto em uma das 12 notas cromáticas. As escolhas são salvas localmente no navegador. Mantenha o gesto para sustentar o acorde; mude a quantidade de dedos ou incline a mão para trocar.
 
 ## Executar localmente
 
@@ -72,7 +72,7 @@ O TKGesture é executado no navegador e não requer banco de dados ou servidor d
 
 - `src/App.tsx`: interface, controles de áudio e modos musicais.
 - `src/useHandTracking.ts`: acesso à câmera, rastreamento e resposta aos gestos.
-- `src/gestureRecognition.ts`: detecção de dedos, inclinação da mão e pinça.
+- `src/gestureRecognition.ts`: detecção dos quatro dedos e da inclinação usada nos gestos.
 - `src/musicTheory.ts`: catálogo cromático de acordes e mapeamentos padrão dos gestos.
 - `src/styles.css`: estilos e animações.
 - `public/images/tkgesture-chibi.png`: imagem da marca.

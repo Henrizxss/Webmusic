@@ -29,7 +29,7 @@ import {
   CHORD_OPTIONS,
   DEFAULT_CHORD_ASSIGNMENTS,
   getChordOption,
-  isChordGestureAssignments,
+  parseChordGestureAssignments,
   type ChordGestureAssignments,
 } from "./musicTheory";
 
@@ -140,10 +140,11 @@ function loadChordAssignmentState(): ChordAssignmentState {
     }
 
     const parsed: unknown = JSON.parse(stored);
-    if (!isChordGestureAssignments(parsed)) {
+    const assignments = parseChordGestureAssignments(parsed);
+    if (!assignments) {
       throw new Error("A configuração salva não corresponde aos gestos disponíveis.");
     }
-    return { assignments: parsed, storageError: null };
+    return { assignments, storageError: null };
   } catch (caught: unknown) {
     console.error("Não foi possível carregar os acordes dos gestos:", caught);
     return {
@@ -828,7 +829,7 @@ function App() {
               <span className="section-label"><Hand size={14} /> GESTOS &amp; ACORDES</span>
               <h2 id="gesture-guide-title">Configure os acordes dos gestos</h2>
               <p className="gesture-guide-description">
-                Use uma mão e conte os dedos erguidos. Mão reta ou inclinada para a direita: 1=C, 2=Dm, 3=Em, 4=F, 5=G. Incline para a esquerda: 2=Am e 3=Bdim. Edite o acorde de cada gesto na tabela.
+                Use uma mão e conte até quatro dedos, sem contar o polegar. Mão reta/direita: 1=C, 2=Dm, 3=Em, 4=F. Incline à esquerda: 1=G, 2=Am, 3=Bdim. Personalize na tabela.
               </p>
             </div>
             <div className="gesture-guide-mode">
@@ -841,7 +842,7 @@ function App() {
               Vire a palma para a câmera e levante a quantidade de dedos indicada na tabela.
             </span></div>
             <div><span>02</span><Music2 size={15} /><span>
-              Mantenha o gesto para sustentar; mude a quantidade ou a inclinação para trocar de acorde. O polegar só conta quando a mão inteira está aberta.
+              Mantenha o gesto para sustentar; mude a quantidade de dedos ou incline a mão à esquerda para trocar.
             </span></div>
           </div>
 
@@ -967,7 +968,7 @@ function App() {
             <h2 id="help-title">Como fazer música?</h2>
             <div className="help-step"><span>01</span><div><strong>Ative a câmera</strong><p>Encontre um lugar iluminado e autorize o acesso à câmera.</p></div><Check size={16} /></div>
             <div className="help-step"><span>02</span><div><strong>Mostre sua mão</strong><p>Vire a palma para a câmera e levante os dedos indicados. O polegar não entra na contagem.</p></div><Check size={16} /></div>
-            <div className="help-step"><span>03</span><div><strong>Faça o gesto do acorde</strong><p>Reta ou inclinada para a direita: 1=C, 2=Dm, 3=Em, 4=F. Inclinada para a esquerda: 2=Am, 3=G, 4=Bdim. Mantenha o gesto para sustentar.</p></div><Check size={16} /></div>
+            <div className="help-step"><span>03</span><div><strong>Faça o gesto do acorde</strong><p>Mão reta/direita: 1=C, 2=Dm, 3=Em e 4=F. Incline à esquerda: 1=G, 2=Am e 3=Bdim. Você pode personalizar os acordes na tabela.</p></div><Check size={16} /></div>
             <div className="help-shortcuts"><Mic2 size={14} /> Ou use o teclado: <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><kbd>F</kbd><kbd>G</kbd><kbd>H</kbd><kbd>J</kbd><kbd>K</kbd></div>
           </section>
         </div>

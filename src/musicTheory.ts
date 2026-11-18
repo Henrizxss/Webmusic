@@ -1,11 +1,11 @@
 export const CHORD_GESTURE_SLOTS = [
-  { id: "neutral-1", fingerCount: 1, tilt: "neutral", gesture: "1 dedo, mão reta ou à direita" },
-  { id: "neutral-2", fingerCount: 2, tilt: "neutral", gesture: "2 dedos, mão reta ou à direita" },
-  { id: "neutral-3", fingerCount: 3, tilt: "neutral", gesture: "3 dedos, mão reta ou à direita" },
-  { id: "neutral-4", fingerCount: 4, tilt: "neutral", gesture: "4 dedos, mão reta ou à direita" },
-  { id: "neutral-5", fingerCount: 5, tilt: "neutral", gesture: "5 dedos, mão reta ou à direita" },
-  { id: "left-2", fingerCount: 2, tilt: "left", gesture: "2 dedos, mão inclinada à esquerda" },
-  { id: "left-3", fingerCount: 3, tilt: "left", gesture: "3 dedos, mão inclinada à esquerda" },
+  { id: "neutral-1", fingerCount: 1, tilt: "neutral", gesture: "1 dedo erguido" },
+  { id: "neutral-2", fingerCount: 2, tilt: "neutral", gesture: "2 dedos erguidos" },
+  { id: "neutral-3", fingerCount: 3, tilt: "neutral", gesture: "3 dedos erguidos" },
+  { id: "neutral-4", fingerCount: 4, tilt: "neutral", gesture: "4 dedos erguidos" },
+  { id: "left-1", fingerCount: 1, tilt: "left", gesture: "1 dedo, inclinação à esquerda" },
+  { id: "left-2", fingerCount: 2, tilt: "left", gesture: "2 dedos, inclinação à esquerda" },
+  { id: "left-3", fingerCount: 3, tilt: "left", gesture: "3 dedos, inclinação à esquerda" },
 ] as const;
 
 export type ChordHandTilt = "left" | "neutral";
@@ -56,7 +56,7 @@ export const DEFAULT_CHORD_ASSIGNMENTS: ChordGestureAssignments = {
   "neutral-2": "2-minor",
   "neutral-3": "4-minor",
   "neutral-4": "5-major",
-  "neutral-5": "7-major",
+  "left-1": "7-major",
   "left-2": "9-minor",
   "left-3": "11-diminished",
 };
@@ -66,7 +66,7 @@ export function getChordGestureSlot(
   tilt: ChordHandTilt,
 ): (typeof CHORD_GESTURE_SLOTS)[number] | null {
   return CHORD_GESTURE_SLOTS.find((slot) => (
-    slot.fingerCount === fingerCount && slot.tilt === tilt
+    slot.fingerCount === fingerCount && (slot.tilt ?? "neutral") === tilt
   )) ?? null;
 }
 
@@ -74,13 +74,23 @@ export function getChordOption(chordId: string): ChordOption | null {
   return CHORD_OPTIONS.find((chord) => chord.id === chordId) ?? null;
 }
 
-export function isChordGestureAssignments(value: unknown): value is ChordGestureAssignments {
-  if (typeof value !== "object" || value === null) return false;
+export function parseChordGestureAssignments(value: unknown): ChordGestureAssignments | null {
+  if (typeof value !== "object" || value === null) return null;
   const assignments = value as Partial<Record<ChordGestureSlotId, unknown>>;
-  return CHORD_GESTURE_SLOTS.every((slot) => {
+  const parsed = { ...DEFAULT_CHORD_ASSIGNMENTS };
+  const requiredSlots = CHORD_GESTURE_SLOTS.filter((slot) => slot.tilt === "neutral");
+  for (const slot of requiredSlots) {
     const chordId = assignments[slot.id];
-    return typeof chordId === "string" && getChordOption(chordId) !== null;
-  });
+    if (typeof chordId !== "string" || !getChordOption(chordId)) return null;
+    parsed[slot.id] = chordId;
+  }
+  for (const slot of CHORD_GESTURE_SLOTS.filter((gesture) => gesture.tilt === "left")) {
+    const chordId = assignments[slot.id];
+    if (chordId === undefined) continue;
+    if (typeof chordId !== "string" || !getChordOption(chordId)) return null;
+    parsed[slot.id] = chordId;
+  }
+  return parsed;
 }
 
 export function getChordPitches(chord: ChordOption, octave: number): number[] {
