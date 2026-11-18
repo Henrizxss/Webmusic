@@ -43,6 +43,7 @@ export function useHandTracking({ octave, assignments, onGesture }: HandTracking
   const previousRef = useRef({
     sustainActive: false,
     sustainedChordId: null as string | null,
+    sustainedPitches: null as number[] | null,
     chordCandidate: null as string | null,
     chordCandidateFrames: 0,
   });
@@ -71,6 +72,7 @@ export function useHandTracking({ octave, assignments, onGesture }: HandTracking
       if (previousRef.current.sustainActive) onGestureRef.current(null);
       previousRef.current.sustainActive = false;
       previousRef.current.sustainedChordId = null;
+      if (previousOptions.octave !== octave) previousRef.current.sustainedPitches = null;
       previousRef.current.chordCandidate = null;
       previousRef.current.chordCandidateFrames = 0;
     }
@@ -95,6 +97,7 @@ export function useHandTracking({ octave, assignments, onGesture }: HandTracking
     previousRef.current = {
       sustainActive: false,
       sustainedChordId: null,
+      sustainedPitches: null,
       chordCandidate: null,
       chordCandidateFrames: 0,
     };
@@ -201,12 +204,18 @@ export function useHandTracking({ octave, assignments, onGesture }: HandTracking
           if (previous.chordCandidateFrames >= CHORD_STABLE_FRAMES && chord) {
             if (!previous.sustainActive || previous.sustainedChordId !== chord.id) {
               if (previous.sustainActive) onGestureRef.current(null);
+              const pitches = getChordPitches(
+                chord,
+                optionsRef.current.octave,
+                previous.sustainedPitches ?? undefined,
+              );
               onGestureRef.current({
                 chordId: chord.id,
-                pitches: getChordPitches(chord, optionsRef.current.octave),
+                pitches,
               });
               previous.sustainActive = true;
               previous.sustainedChordId = chord.id;
+              previous.sustainedPitches = pitches;
             }
           } else if (previous.chordCandidateFrames >= CHORD_STABLE_FRAMES && previous.sustainActive) {
             onGestureRef.current(null);
