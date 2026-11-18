@@ -19,41 +19,39 @@ function distance3D(first: HandPoint, second: HandPoint): number {
   );
 }
 
-function jointAngle(first: HandPoint, joint: HandPoint, last: HandPoint): number {
-  const firstVector = {
-    x: first.x - joint.x,
-    y: first.y - joint.y,
-    z: first.z - joint.z,
-  };
-  const lastVector = {
-    x: last.x - joint.x,
-    y: last.y - joint.y,
-    z: last.z - joint.z,
-  };
-  const vectorLengths = distance3D(firstVector, { x: 0, y: 0, z: 0 })
-    * distance3D(lastVector, { x: 0, y: 0, z: 0 });
-  if (vectorLengths === 0) return 0;
-
-  const dotProduct = firstVector.x * lastVector.x
-    + firstVector.y * lastVector.y
-    + firstVector.z * lastVector.z;
-  const cosine = Math.max(-1, Math.min(1, dotProduct / vectorLengths));
-  return Math.acos(cosine) * (180 / Math.PI);
+function distance2D(first: HandPoint, second: HandPoint): number {
+  return Math.hypot(first.x - second.x, first.y - second.y);
 }
 
-export function getExtendedFingerCount(hand: HandPoint[]): number {
+export function getExtendedFingerCount(hand: HandPoint[], geometryHand: HandPoint[] = hand): number {
+  const palmVectorX = hand[9].x - hand[0].x;
+  const palmVectorY = hand[9].y - hand[0].y;
+  const palmLength = Math.hypot(palmVectorX, palmVectorY);
+  if (palmLength < 0.0001) return 0;
+
+  const palmDirectionX = palmVectorX / palmLength;
+  const palmDirectionY = palmVectorY / palmLength;
+  const progressFromWrist = (point: HandPoint) => (
+    (point.x - hand[0].x) * palmDirectionX
+    + (point.y - hand[0].y) * palmDirectionY
+  );
   const extendedFingers = FINGER_JOINTS.filter(({ mcp, pip, dip, tip }) => {
-    const pipAngle = jointAngle(hand[mcp], hand[pip], hand[dip]);
-    const dipAngle = jointAngle(hand[pip], hand[dip], hand[tip]);
-    const extensionRatio = distance3D(hand[mcp], hand[tip])
-      / Math.max(distance3D(hand[mcp], hand[pip]), 0.0001);
-    return pipAngle > 150 && dipAngle > 140 && extensionRatio > 1.18;
+    const pipProgress = progressFromWrist(hand[pip]);
+    const dipProgress = progressFromWrist(hand[dip]);
+    const tipProgress = progressFromWrist(hand[tip]);
+    const fingerLength = distance2D(hand[mcp], hand[pip]);
+    const extensionRatio = distance2D(hand[mcp], hand[tip]) / Math.max(fingerLength, 0.0001);
+    return tipProgress > pipProgress + palmLength * 0.08
+      && tipProgress > dipProgress
+      && extensionRatio > 1.1;
   }).length;
 
-  const palmWidth = distance3D(hand[5], hand[17]);
-  const thumbSpread = distance3D(hand[4], hand[5]);
-  const thumbLength = distance3D(hand[2], hand[3]) + distance3D(hand[3], hand[4]);
-  const thumbStraightness = distance3D(hand[2], hand[4]) / Math.max(thumbLength, 0.0001);
+  const palmWidth = distance3D(geometryHand[5], geometryHand[17]);
+  const thumbSpread = distance3D(geometryHand[4], geometryHand[5]);
+  const thumbLength = distance3D(geometryHand[2], geometryHand[3])
+    + distance3D(geometryHand[3], geometryHand[4]);
+  const thumbStraightness = distance3D(geometryHand[2], geometryHand[4])
+    / Math.max(thumbLength, 0.0001);
   const thumbExtended = thumbStraightness > 0.8 && thumbSpread > palmWidth * 0.35;
 
   return extendedFingers + (thumbExtended ? 1 : 0);

@@ -41,7 +41,7 @@ const CONNECTIONS = [
   [5, 9], [9, 10], [10, 11], [11, 12], [9, 13], [13, 14], [14, 15],
   [15, 16], [13, 17], [17, 18], [18, 19], [19, 20], [0, 17],
 ];
-const CHORD_STABLE_FRAMES = 3;
+const CHORD_STABLE_FRAMES = 5;
 
 function getMidiNote(noteIndex: number, octave: number): number {
   return 12 * (octave + 1) + NOTES[noteIndex].semitone;
@@ -234,7 +234,9 @@ export function useHandTracking({
             sustainMode: currentSustainMode,
             chordMode: currentChordMode,
           } = optionsRef.current;
-          const fingerCounts = geometryHands.map(getExtendedFingerCount);
+          const fingerCounts = currentChordMode
+            ? hands.map((hand, index) => getExtendedFingerCount(hand, geometryHands[index]))
+            : [];
           const chordIndex = currentChordMode ? getChordIndexForHands(fingerCounts) : null;
 
           if (currentChordMode) {
