@@ -29,6 +29,7 @@ import {
   CHORD_OPTIONS,
   DEFAULT_CHORD_ASSIGNMENTS,
   getChordOption,
+  getChordPitches,
   parseChordGestureAssignments,
   type ChordGestureAssignments,
 } from "./musicTheory";
@@ -176,6 +177,7 @@ function App() {
   const scrollProgressRef = useRef<HTMLSpanElement>(null);
   const timeoutRef = useRef<number | null>(null);
   const sustainedVoicesRef = useRef<Map<number, SustainedVoice[]>>(new Map());
+  const activeChordRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (chordAssignmentState.storageError) return;
@@ -426,29 +428,6 @@ function App() {
     }
 
     const uniqueNotes = [...new Set(midiNotes)].sort((first, second) => first - second);
-    const activeEntries = [...sustainedVoicesRef.current.entries()]
-      .sort(([first], [second]) => first - second);
-    const canRetuneInPlace = activeEntries.length === uniqueNotes.length
-      && activeEntries.every(([midi], index) => midi % 12 === uniqueNotes[index] % 12);
-
-    if (canRetuneInPlace) {
-      const now = context.currentTime;
-      const retunedVoices = uniqueNotes.map((midi, index) => {
-        const voices = activeEntries[index][1];
-        const frequency = 440 * 2 ** ((midi - 69) / 12);
-        voices.forEach(({ oscillator }, partialIndex) => {
-          oscillator.frequency.cancelScheduledValues(now);
-          oscillator.frequency.setValueAtTime(frequency * (partialIndex + 1), now);
-        });
-        return [midi, voices] as const;
-      });
-
-      sustainedVoicesRef.current.clear();
-      retunedVoices.forEach(([midi, voices]) => sustainedVoicesRef.current.set(midi, voices));
-      setActiveNotes(uniqueNotes);
-      return;
-    }
-
     releaseSustainedNotes(0.06);
     const preset = TIMBRE_PRESETS[instrument];
     const now = context.currentTime;
@@ -491,21 +470,38 @@ function App() {
 
   const playGesture = useCallback((gesture: HandGesture | null) => {
     if (!gesture) {
+      activeChordRef.current = null;
       releaseSustainedNotes();
       return;
     }
 
     try {
       if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
-      playSustainedNotes(gesture.pitches);
+      const chord = getChordOption(gesture.chordId);
+      if (!chord) throw new Error(`Acorde reconhecido inválido: ${gesture.chordId}`);
+      activeChordRef.current = chord.id;
+      playSustainedNotes(getChordPitches(chord, octave));
     } catch (caught: unknown) {
       console.error("Erro ao tocar uma nota reconhecida:", caught);
       setAudioError("Não foi possível tocar a nota. Verifique o volume e o dispositivo de saída.");
     }
-  }, [playSustainedNotes, releaseSustainedNotes]);
+  }, [octave, playSustainedNotes, releaseSustainedNotes]);
+
+  useEffect(() => {
+    const activeChord = activeChordRef.current
+      ? getChordOption(activeChordRef.current)
+      : null;
+    if (!activeChord) return;
+
+    try {
+      playSustainedNotes(getChordPitches(activeChord, octave));
+    } catch (caught: unknown) {
+      console.error("Erro ao alterar a oitava do acorde:", caught);
+      setAudioError("Não foi possível alterar a oitava. Verifique o áudio e o dispositivo de saída.");
+    }
+  }, [octave, playSustainedNotes]);
 
   const camera = useHandTracking({
-    octave,
     assignments: chordAssignments,
     onGesture: playGesture,
   });
@@ -518,12 +514,14 @@ function App() {
       await handleRefreshDevices();
     } catch (caught: unknown) {
       console.error("Erro ao iniciar a câmera:", caught);
+      activeChordRef.current = null;
       releaseSustainedNotes();
       setAudioError("Não foi possível iniciar o áudio ou a câmera. Confira as permissões e tente novamente.");
     }
   };
 
   const stopCamera = () => {
+    activeChordRef.current = null;
     releaseSustainedNotes();
     camera.stop();
   };
@@ -531,6 +529,7 @@ function App() {
   const playKey = useCallback((noteIndex: number) => {
     const midi = 12 * (octave + 1) + WHITE_KEY_SEMITONES[noteIndex];
     void ensureAudio().then(() => {
+      activeChordRef.current = null;
       releaseSustainedNotes();
       playMidiNotes([midi]);
       setActiveNotes((current) => [...new Set([...current, midi])]);
@@ -544,6 +543,7 @@ function App() {
   const playBlackKey = useCallback((semitone: number) => {
     const midi = 12 * (octave + 1) + semitone;
     void ensureAudio().then(() => {
+      activeChordRef.current = null;
       releaseSustainedNotes();
       playMidiNotes([midi]);
       setActiveNotes((current) => [...new Set([...current, midi])]);
@@ -580,6 +580,7 @@ function App() {
   const changeCamera = (deviceId: string) => {
     setSelectedCameraId(deviceId);
     if (camera.isRunning) {
+      activeChordRef.current = null;
       releaseSustainedNotes();
       camera.stop();
       void startCamera(deviceId);
@@ -766,6 +767,7 @@ function App() {
             <div className="controls-heading">
               <div><span className="section-label"><Command size={13} /> CONTROLES</span><span className="controls-hint">Ajuste seu som</span></div>
               <button className="reset-button" onClick={() => {
+                activeChordRef.current = null;
                 releaseSustainedNotes();
                 setOctave(4);
                 setVolume(80);
