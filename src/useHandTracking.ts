@@ -68,7 +68,22 @@ export function useHandTracking({ octave, assignments, onGesture }: HandTracking
   useEffect(() => {
     const nextOptions = { octave, assignments };
     const previousOptions = optionsRef.current;
-    if (previousOptions.octave !== octave || previousOptions.assignments !== assignments) {
+    const octaveChanged = previousOptions.octave !== octave;
+    const assignmentsChanged = previousOptions.assignments !== assignments;
+    optionsRef.current = nextOptions;
+
+    if (octaveChanged && !assignmentsChanged && previousRef.current.sustainActive) {
+      const chord = getChordOption(previousRef.current.sustainedChordId ?? "");
+      if (chord) {
+        onGestureRef.current({
+          chordId: chord.id,
+          pitches: getChordPitches(chord, octave),
+        });
+        return;
+      }
+    }
+
+    if (octaveChanged || assignmentsChanged) {
       if (previousRef.current.sustainActive) onGestureRef.current(null);
       previousRef.current.sustainActive = false;
       previousRef.current.sustainedChordId = null;
@@ -76,7 +91,6 @@ export function useHandTracking({ octave, assignments, onGesture }: HandTracking
       previousRef.current.chordCandidate = null;
       previousRef.current.chordCandidateFrames = 0;
     }
-    optionsRef.current = nextOptions;
   }, [octave, assignments]);
 
   const stop = useCallback(() => {
