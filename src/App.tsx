@@ -638,7 +638,13 @@ function App() {
               {camera.isRunning && (
                 <>
                   <span className="camera-chip"><span /> RECONHECIMENTO ATIVO</span>
-                  <div className="camera-readout"><AudioLines size={12} /> {camera.status.count} {camera.status.count === 1 ? "mão" : "mãos"} detectada{camera.status.count === 1 ? "" : "s"}</div>
+                  <div className="camera-readout">
+                    <AudioLines size={12} />
+                    {camera.status.count} {camera.status.count === 1 ? "mão" : "mãos"} detectada{camera.status.count === 1 ? "" : "s"}
+                    {chordMode && camera.status.fingerCounts.length > 0 && (
+                      <> · {camera.status.fingerCounts.join(" + ")} {camera.status.fingerCounts.reduce((total, count) => total + count, 0) === 1 ? "dedo" : "dedos"}</>
+                    )}
+                  </div>
                   {camera.status.noteIndex !== null && (!chordMode || camera.status.chordIndex !== null) && (
                     <div className={`note-cursor ${camera.status.pinching || camera.status.chordIndex !== null ? "note-cursor-active" : ""}`}>
                       <span>{camera.status.chordIndex !== null

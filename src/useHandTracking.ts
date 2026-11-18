@@ -30,6 +30,7 @@ interface HandTrackingOptions {
 
 interface HandStatus {
   count: number;
+  fingerCounts: number[];
   noteIndex: number | null;
   pinching: boolean;
   chordIndex: number | null;
@@ -82,6 +83,7 @@ export function useHandTracking({
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<HandStatus>({
     count: 0,
+    fingerCounts: [],
     noteIndex: null,
     pinching: false,
     chordIndex: null,
@@ -141,7 +143,7 @@ export function useHandTracking({
     };
     setIsRunning(false);
     setIsLoading(false);
-    setStatus({ count: 0, noteIndex: null, pinching: false, chordIndex: null });
+    setStatus({ count: 0, fingerCounts: [], noteIndex: null, pinching: false, chordIndex: null });
   }, []);
 
   const clearError = useCallback(() => setError(null), []);
@@ -232,9 +234,8 @@ export function useHandTracking({
             sustainMode: currentSustainMode,
             chordMode: currentChordMode,
           } = optionsRef.current;
-          const chordIndex = currentChordMode
-            ? getChordIndexForHands(geometryHands.map(getExtendedFingerCount))
-            : null;
+          const fingerCounts = geometryHands.map(getExtendedFingerCount);
+          const chordIndex = currentChordMode ? getChordIndexForHands(fingerCounts) : null;
 
           if (currentChordMode) {
             previous.secondY = null;
@@ -387,11 +388,14 @@ export function useHandTracking({
             setStatus((current) => {
               const next = {
                 count: hands.length,
+                fingerCounts,
                 noteIndex: currentChordMode && chordIndex !== null ? chordIndex : noteIndex,
                 pinching,
                 chordIndex,
               };
               return current.count === next.count
+                && current.fingerCounts.length === next.fingerCounts.length
+                && current.fingerCounts.every((count, index) => count === next.fingerCounts[index])
                 && current.noteIndex === next.noteIndex
                 && current.pinching === next.pinching
                 && current.chordIndex === next.chordIndex

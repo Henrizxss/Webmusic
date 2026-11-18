@@ -50,13 +50,11 @@ export function getExtendedFingerCount(hand: HandPoint[]): number {
     return pipAngle > 150 && dipAngle > 140 && extensionRatio > 1.18;
   }).length;
 
-  const thumbMcpAngle = jointAngle(hand[1], hand[2], hand[3]);
-  const thumbIpAngle = jointAngle(hand[2], hand[3], hand[4]);
   const palmWidth = distance3D(hand[5], hand[17]);
   const thumbSpread = distance3D(hand[4], hand[5]);
-  const thumbExtended = thumbMcpAngle > 140
-    && thumbIpAngle > 140
-    && thumbSpread > palmWidth * 0.42;
+  const thumbLength = distance3D(hand[2], hand[3]) + distance3D(hand[3], hand[4]);
+  const thumbStraightness = distance3D(hand[2], hand[4]) / Math.max(thumbLength, 0.0001);
+  const thumbExtended = thumbStraightness > 0.8 && thumbSpread > palmWidth * 0.35;
 
   return extendedFingers + (thumbExtended ? 1 : 0);
 }
