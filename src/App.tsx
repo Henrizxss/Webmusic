@@ -389,7 +389,7 @@ function App() {
     });
   }, [instrument]);
 
-  const releaseSustainedNotes = useCallback(() => {
+  const releaseSustainedNotes = useCallback((duration?: number) => {
     const context = audioContextRef.current;
     const voicesByNote = sustainedVoicesRef.current;
     if (voicesByNote.size === 0) return;
@@ -403,9 +403,10 @@ function App() {
 
     voicesByNote.forEach((voices) => {
       voices.forEach(({ oscillator, filter, envelope, release }) => {
+        const releaseDuration = duration ?? release;
         envelope.gain.cancelScheduledValues(now);
-        envelope.gain.setTargetAtTime(0.0001, now, Math.max(0.015, release / 5));
-        oscillator.stop(now + release);
+        envelope.gain.setTargetAtTime(0.0001, now, Math.max(0.01, releaseDuration / 5));
+        oscillator.stop(now + releaseDuration);
         oscillator.addEventListener("ended", () => {
           oscillator.disconnect();
           filter.disconnect();
@@ -424,7 +425,7 @@ function App() {
       throw new Error("O áudio ainda não está pronto. Toque novamente para ativá-lo.");
     }
 
-    releaseSustainedNotes();
+    releaseSustainedNotes(0.06);
     const preset = TIMBRE_PRESETS[instrument];
     const now = context.currentTime;
     const uniqueNotes = [...new Set(midiNotes)];

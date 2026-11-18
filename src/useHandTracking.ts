@@ -203,7 +203,6 @@ export function useHandTracking({ octave, assignments, onGesture }: HandTracking
 
           if (previous.chordCandidateFrames >= CHORD_STABLE_FRAMES && chord) {
             if (!previous.sustainActive || previous.sustainedChordId !== chord.id) {
-              if (previous.sustainActive) onGestureRef.current(null);
               const pitches = getChordPitches(chord, optionsRef.current.octave);
               onGestureRef.current({
                 chordId: chord.id,
