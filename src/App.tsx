@@ -136,7 +136,6 @@ function App() {
   const [octave, setOctave] = useState(4);
   const [volume, setVolume] = useState(80);
   const [instrument, setInstrument] = useState<Timbre>("Piano elétrico");
-  const [sustainMode, setSustainMode] = useState(false);
   const [chordMode, setChordMode] = useState(false);
   const [activeNotes, setActiveNotes] = useState<number[]>([]);
   const [audioError, setAudioError] = useState<string | null>(null);
@@ -434,26 +433,17 @@ function App() {
 
     try {
       if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
-      if (sustainMode || gesture.chordIndex !== undefined) {
-        playSustainedNotes(gesture.pitches);
-        return;
-      }
-
-      releaseSustainedNotes();
-      playMidiNotes(gesture.pitches);
-      setActiveNotes(gesture.pitches);
-      timeoutRef.current = window.setTimeout(() => setActiveNotes([]), 240);
+      playSustainedNotes(gesture.pitches);
     } catch (caught: unknown) {
       console.error("Erro ao tocar uma nota reconhecida:", caught);
       setAudioError("Não foi possível tocar a nota. Verifique o volume e o dispositivo de saída.");
     }
-  }, [playMidiNotes, playSustainedNotes, releaseSustainedNotes, sustainMode]);
+  }, [playSustainedNotes, releaseSustainedNotes]);
 
   const guitarMode = instrument === "Guitarra";
   const camera = useHandTracking({
     octave,
     guitarMode,
-    sustainMode,
     chordMode,
     onGesture: playGesture,
   });
@@ -532,11 +522,6 @@ function App() {
       camera.stop();
       void startCamera(deviceId);
     }
-  };
-
-  const toggleSustainMode = () => {
-    if (sustainMode) releaseSustainedNotes();
-    setSustainMode(!sustainMode);
   };
 
   const toggleChordMode = () => {
@@ -730,7 +715,6 @@ function App() {
                 setOctave(4);
                 setVolume(80);
                 setInstrument("Piano elétrico");
-                setSustainMode(false);
                 setChordMode(false);
               }}><RotateCcw size={12} /> REDEFINIR</button>
             </div>
@@ -763,8 +747,8 @@ function App() {
                 <span className="control-label">Modo de execução</span>
                 <span className="controls-hint">
                   {chordMode
-                    ? "Campo harmônico de Dó maior, com sustentação automática."
-                    : "Ative para tocar os sete acordes usando os dedos."}
+                    ? "Sete acordes com uma mão e sustentação automática."
+                    : "Notas tocadas por pinça, com sustentação sempre ativa."}
                 </span>
               </div>
               <button
@@ -778,30 +762,14 @@ function App() {
               </button>
             </div>
 
-            {chordMode ? (
-              <p className="sustain-auto-note"><AudioLines size={13} /> O acorde toca continuamente enquanto o gesto for reconhecido.</p>
-            ) : (
-              <div className="sustain-control">
-                <div>
-                  <span className="control-label">Sustentação por gesto</span>
-                  <span className="controls-hint">
-                    {guitarMode
-                      ? "Palhetadas trocam o acorde; retire a mão para parar."
-                      : "Segure a pinça para manter a nota; solte para parar."}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className={`sustain-toggle${sustainMode ? " is-enabled" : ""}`}
-                  aria-pressed={sustainMode}
-                  aria-label={`Sustentação por gesto ${sustainMode ? "ativada" : "desativada"}`}
-                  onClick={toggleSustainMode}
-                >
-                  <span className="sustain-switch" aria-hidden="true"><span /></span>
-                  {sustainMode ? "ATIVADA" : "DESATIVADA"}
-                </button>
-              </div>
-            )}
+            <p className="sustain-auto-note">
+              <AudioLines size={13} />
+              {chordMode
+                ? "O acorde toca enquanto o gesto for reconhecido."
+                : guitarMode
+                  ? "Sustentação sempre ativa: palhete para trocar o acorde e afaste a mão para parar."
+                  : "Sustentação sempre ativa: segure a pinça para manter a nota e solte para parar."}
+            </p>
           </section>
         </div>
 
@@ -859,12 +827,10 @@ function App() {
               <h2 id="gesture-guide-title">{chordMode ? "Acordes do campo harmônico" : "Toque com um gesto"}</h2>
               <p className="gesture-guide-description">
                 {chordMode
-                  ? "Mantenha as palmas voltadas para a câmera e levante a quantidade indicada. Use uma mão para C, Dm, Em e F; as duas para G, Am e Bdim. Mantenha o gesto para sustentar."
-                  : `Mova o indicador na imagem para escolher uma nota. Cada faixa acende quando sua mão entra nela.${sustainMode
-                    ? guitarMode
-                      ? " Na guitarra, cada palhetada troca o acorde e afastar a mão encerra o som."
-                      : " Com a sustentação ativada, mantenha a pinça para segurar a nota e solte para silenciar."
-                    : ""}`}
+                  ? "Use apenas uma mão: reta ou inclinada para a direita seleciona C, Dm, Em e F; incline-a para a esquerda para selecionar Am, G e Bdim. Mantenha o gesto para sustentar."
+                  : `Mova o indicador na imagem para escolher uma nota. Cada faixa acende quando sua mão entra nela.${guitarMode
+                    ? " Na guitarra, palhete para trocar o acorde e afaste a mão para parar."
+                    : " Segure a pinça para manter a nota e solte para silenciar."}`}
               </p>
             </div>
             <div className="gesture-guide-mode">
@@ -883,12 +849,8 @@ function App() {
               {chordMode
                 ? "Mantenha o gesto para sustentar; mude a quantidade para trocar de acorde."
                 : guitarMode
-                  ? sustainMode
-                    ? "Palhete para trocar o acorde e retire a mão para parar."
-                    : "Mantenha uma mão na nota e mova a outra para palhetar."
-                  : sustainMode
-                    ? "Mantenha o polegar e o indicador unidos para sustentar a nota."
-                    : "Junte o polegar e o indicador para tocar."}
+                  ? "Palhete para trocar o acorde e retire a mão para parar."
+                  : "Mantenha o polegar e o indicador unidos para sustentar a nota."}
             </span></div>
           </div>
 
@@ -898,18 +860,18 @@ function App() {
                 <thead>
                   <tr>
                     <th scope="col">ACORDE</th>
-                    <th scope="col">GESTO</th>
-                    <th scope="col">MÃOS</th>
                     <th scope="col">DEDOS</th>
+                    <th scope="col">INCLINAÇÃO</th>
+                    <th scope="col">GESTO</th>
                   </tr>
                 </thead>
                 <tbody>
                   {HARMONIC_FIELD.map((chord, index) => (
                     <tr key={chord.name} className={camera.status.chordIndex === index ? "gesture-row-active" : ""}>
                       <td><span className="gesture-note"><span className="gesture-note-key">{chord.name}</span><span>{chord.quality}</span></span></td>
-                      <td><span className="gesture-action"><Hand size={14} /> {chord.gesture}</span></td>
-                      <td>{chord.handsRequired === 1 ? "Uma mão" : "Duas mãos"}</td>
                       <td><span className="gesture-shortcut">{chord.fingerCount}</span></td>
+                      <td>{chord.tilt === "left" ? "Esquerda" : "Reta/direita"}</td>
+                      <td><span className="gesture-action"><Hand size={14} /> {chord.gesture}</span></td>
                     </tr>
                   ))}
                 </tbody>
@@ -950,8 +912,8 @@ function App() {
                       <td>
                         <span className="gesture-action">
                           {guitarMode
-                            ? <><Guitar size={14} /> {sustainMode ? "Palhete para trocar o acorde" : "Mova a outra mão para palhetar"}</>
-                            : <><Hand size={14} /> {sustainMode ? "Mantenha a pinça para sustentar" : "Belisque polegar + indicador"}</>}
+                            ? <><Guitar size={14} /> Palhete para trocar o acorde</>
+                            : <><Hand size={14} /> Mantenha a pinça para sustentar</>}
                         </span>
                       </td>
                       <td><span className="gesture-shortcut">{item.key}</span></td>
@@ -1023,17 +985,13 @@ function App() {
             <div className="help-step"><span>01</span><div><strong>Ative a câmera</strong><p>Encontre um lugar iluminado e autorize o acesso à câmera.</p></div><Check size={16} /></div>
             <div className="help-step"><span>02</span><div><strong>Mostre sua mão</strong><p>Abra a palma diante da câmera. Mova da esquerda para a direita para percorrer as notas.</p></div><Check size={16} /></div>
             <div className="help-step"><span>03</span><div><strong>
-              {chordMode ? "Faça o gesto do acorde" : sustainMode ? "Sustente a nota" : "Belisque para tocar"}
+              {chordMode ? "Faça o gesto do acorde" : "Sustente a nota"}
             </strong><p>
               {chordMode
-                ? "No campo de Dó maior, levante de 2 a 5 dedos em uma mão ou de 6 a 8 dedos somando as duas mãos. Mantenha o gesto para sustentar."
-                : sustainMode
-                  ? guitarMode
-                    ? "Na guitarra, palhetadas trocam o acorde. Afaste a mão que palheta para encerrar o som."
-                    : "Mantenha o polegar e o indicador unidos para sustentar a nota. Abra a mão para silenciar."
-                  : guitarMode
-                    ? "Mantenha uma mão na nota e mova a outra para palhetar."
-                    : "Junte o indicador e o polegar para tocar."}
+                ? "Use uma mão. Reta ou inclinada para a direita: 2=C, 3=Dm, 4=Em, 5=F. Inclinada para a esquerda: 2=Am, 3=G, 4=Bdim. Mantenha o gesto para sustentar."
+                : guitarMode
+                  ? "Na guitarra, palhetadas trocam o acorde. Afaste a mão que palheta para encerrar o som."
+                  : "Mantenha o polegar e o indicador unidos para sustentar a nota. Abra a mão para silenciar."}
             </p></div><Check size={16} /></div>
             <div className="help-shortcuts"><Mic2 size={14} /> Ou use o teclado: <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><kbd>F</kbd><kbd>G</kbd><kbd>H</kbd><kbd>J</kbd><kbd>K</kbd></div>
           </section>

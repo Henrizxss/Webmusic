@@ -228,15 +228,9 @@ input[type="range"]::-moz-range-thumb { width: 8px; height: 8px; border: 2px sol
 .volume-value { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 9px; }
 .volume-value > svg { color: var(--accent); }
 .volume-control > input { margin-top: 10px; }
-.sustain-control, .chord-mode-control { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 13px; padding-top: 11px; border-top: 1px solid var(--border); }
-.sustain-control > div, .chord-mode-control > div { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.sustain-control .controls-hint, .chord-mode-control .controls-hint { line-height: 1.4; }
-.sustain-toggle { min-height: 29px; flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px; padding: 0 8px; border: 1px solid var(--border-strong); border-radius: 5px; background: var(--surface-soft); color: var(--muted); cursor: pointer; font-size: 8px; font-weight: 650; letter-spacing: .45px; transition: border-color 160ms ease, color 160ms ease, background 160ms ease; }
-.sustain-toggle:hover, .sustain-toggle.is-enabled { border-color: rgba(237, 53, 89, .38); color: var(--accent); }
-.sustain-switch { width: 23px; height: 13px; display: flex; align-items: center; padding: 2px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--track); transition: background 160ms ease; }
-.sustain-switch > span { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); transition: transform 160ms ease, background 160ms ease; }
-.sustain-toggle.is-enabled .sustain-switch { background: var(--accent-soft); }
-.sustain-toggle.is-enabled .sustain-switch > span { transform: translateX(10px); background: var(--accent); }
+.chord-mode-control { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 13px; padding-top: 11px; border-top: 1px solid var(--border); }
+.chord-mode-control > div { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.chord-mode-control .controls-hint { line-height: 1.4; }
 .chord-mode-toggle { min-height: 29px; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 9px; border: 1px solid var(--border-strong); border-radius: 5px; background: var(--surface-soft); color: var(--muted); cursor: pointer; font-size: 8px; font-weight: 650; letter-spacing: .45px; transition: border-color 160ms ease, color 160ms ease, background 160ms ease; }
 .chord-mode-toggle:hover, .chord-mode-toggle.is-enabled { border-color: rgba(237, 53, 89, .38); background: var(--accent-soft); color: var(--accent); }
 .chord-mode-toggle > svg { color: var(--accent); }

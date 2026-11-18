@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { HandLandmarker } from "@mediapipe/tasks-vision";
-import { getChordIndexForHands, getChordPitches } from "./musicTheory";
-import { getExtendedFingerCount, getNoteIndex, isPinching } from "./gestureRecognition";
+import { getChordIndexForGesture, getChordPitches } from "./musicTheory";
+import { getChordHandTilt, getExtendedFingerCount, getNoteIndex, isPinching } from "./gestureRecognition";
 
 const NOTES = [
   { note: "C", semitone: 0 },
@@ -23,7 +23,6 @@ export interface HandGesture {
 interface HandTrackingOptions {
   octave: number;
   guitarMode: boolean;
-  sustainMode: boolean;
   chordMode: boolean;
   onGesture: (gesture: HandGesture | null) => void;
 }
@@ -55,7 +54,6 @@ export function getNoteName(noteIndex: number, octave: number): string {
 export function useHandTracking({
   octave,
   guitarMode,
-  sustainMode,
   chordMode,
   onGesture,
 }: HandTrackingOptions) {
@@ -76,7 +74,7 @@ export function useHandTracking({
     chordCandidateFrames: 0,
   });
   const onGestureRef = useRef(onGesture);
-  const optionsRef = useRef({ octave, guitarMode, sustainMode, chordMode });
+  const optionsRef = useRef({ octave, guitarMode, chordMode });
   const frameCountRef = useRef(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
@@ -94,12 +92,11 @@ export function useHandTracking({
   }, [onGesture]);
 
   useEffect(() => {
-    const nextOptions = { octave, guitarMode, sustainMode, chordMode };
+    const nextOptions = { octave, guitarMode, chordMode };
     const previousOptions = optionsRef.current;
     if (
       previousOptions.octave !== octave
       || previousOptions.guitarMode !== guitarMode
-      || previousOptions.sustainMode !== sustainMode
       || previousOptions.chordMode !== chordMode
     ) {
       if (previousRef.current.sustainActive) onGestureRef.current(null);
@@ -113,7 +110,14 @@ export function useHandTracking({
       previousRef.current.pinching = false;
     }
     optionsRef.current = nextOptions;
-  }, [octave, guitarMode, sustainMode, chordMode]);
+
+    if (previousOptions.chordMode !== chordMode && landmarkerRef.current) {
+      void landmarkerRef.current.setOptions({ numHands: chordMode ? 1 : 2 }).catch((caught: unknown) => {
+        const message = caught instanceof Error ? caught.message : "erro desconhecido";
+        setError(`Não foi possível ajustar o reconhecimento de mãos: ${message}`);
+      });
+    }
+  }, [octave, guitarMode, chordMode]);
 
   const stop = useCallback(() => {
     if (animationRef.current !== null) {
@@ -188,7 +192,7 @@ export function useHandTracking({
           delegate: "GPU",
         },
         runningMode: "VIDEO",
-        numHands: 2,
+        numHands: optionsRef.current.chordMode ? 1 : 2,
         minHandDetectionConfidence: 0.55,
         minHandPresenceConfidence: 0.55,
         minTrackingConfidence: 0.5,
@@ -231,13 +235,15 @@ export function useHandTracking({
           const {
             octave: currentOctave,
             guitarMode: currentGuitarMode,
-            sustainMode: currentSustainMode,
             chordMode: currentChordMode,
           } = optionsRef.current;
-          const fingerCounts = currentChordMode
-            ? hands.map((hand, index) => getExtendedFingerCount(hand, geometryHands[index]))
+          const fingerCounts = currentChordMode && primaryHand
+            ? [getExtendedFingerCount(primaryHand, geometryHands[0])]
             : [];
-          const chordIndex = currentChordMode ? getChordIndexForHands(fingerCounts) : null;
+          const handTilt = currentChordMode && primaryHand ? getChordHandTilt(primaryHand) : null;
+          const chordIndex = currentChordMode && fingerCounts.length === 1 && handTilt
+            ? getChordIndexForGesture(fingerCounts[0], handTilt)
+            : null;
 
           if (currentChordMode) {
             previous.secondY = null;
@@ -273,7 +279,7 @@ export function useHandTracking({
               previous.sustainedNoteIndex = -1;
               previous.sustainedChordMode = false;
             }
-          } else if (currentSustainMode) {
+          } else {
             previous.chordCandidate = null;
             previous.chordCandidateFrames = 0;
             if (previous.sustainActive && previous.sustainedChordMode) {
@@ -327,33 +333,6 @@ export function useHandTracking({
                 previous.sustainedNoteIndex = -1;
                 previous.sustainedChordMode = false;
               }
-            }
-          } else {
-            previous.chordCandidate = null;
-            previous.chordCandidateFrames = 0;
-            if (previous.sustainActive) {
-              onGestureRef.current(null);
-              previous.sustainActive = false;
-              previous.sustainedNoteIndex = -1;
-              previous.sustainedChordMode = false;
-              previous.pinching = false;
-            }
-
-            if (currentGuitarMode && primaryHand && hands[1]) {
-              const strumY = hands[1][8].y;
-              if (previous.secondY !== null && Math.abs(strumY - previous.secondY) > 0.045 && noteIndex !== null) {
-                const root = getMidiNote(noteIndex, currentOctave);
-                onGestureRef.current({ noteIndex, pitches: [root, root + 4, root + 7] });
-              }
-              previous.secondY = strumY;
-            } else if (pinching && noteIndex !== null && (!previous.pinching || noteIndex !== previous.noteIndex)) {
-              onGestureRef.current({
-                noteIndex,
-                pitches: [getMidiNote(noteIndex, currentOctave)],
-              });
-              previous.secondY = null;
-            } else if (!pinching) {
-              previous.secondY = null;
             }
           }
 

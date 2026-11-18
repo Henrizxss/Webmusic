@@ -57,6 +57,13 @@ export function getExtendedFingerCount(hand: HandPoint[], geometryHand: HandPoin
   return extendedFingers + (thumbExtended ? 1 : 0);
 }
 
+export function getChordHandTilt(hand: HandPoint[]): "left" | "neutral" {
+  const horizontal = hand[0].x - hand[9].x;
+  const vertical = hand[0].y - hand[9].y;
+  const angleDegrees = Math.atan2(horizontal, vertical) * (180 / Math.PI);
+  return angleDegrees < -26 ? "left" : "neutral";
+}
+
 export function isPinching(hand: HandPoint[], wasPinching: boolean): boolean {
   const palmWidth = distance3D(hand[5], hand[17]);
   if (palmWidth < 0.0001) return wasPinching;
