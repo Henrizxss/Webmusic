@@ -5,7 +5,8 @@ TKGesture é um instrumento musical para navegador que transforma gestos da mão
 ## Recursos
 
 - Modo de acordes com uma mão, sustentando o acorde enquanto o gesto for reconhecido.
-- Acordes com fundamental fixa na nota e oitava escolhidas; as outras notas podem mudar de oitava para transições mais suaves.
+- Cada gesto sempre toca as mesmas notas do acorde, com fundamental fixa na nota e oitava escolhidas.
+- A troca de acorde exige 12 quadros estáveis para evitar que oscilações breves da câmera mudem o som.
 - Teclado virtual e atalhos para testar notas manualmente.
 - Timbres selecionáveis, incluindo piano e guitarra.
 - Seleção de câmera e, quando compatível com o navegador, da saída de áudio.

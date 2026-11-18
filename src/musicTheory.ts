@@ -93,46 +93,9 @@ export function parseChordGestureAssignments(value: unknown): ChordGestureAssign
   return parsed;
 }
 
-export function getChordPitches(
-  chord: ChordOption,
-  octave: number,
-  previousPitches?: readonly number[],
-): number[] {
+export function getChordPitches(chord: ChordOption, octave: number): number[] {
   const rootMidi = 12 * (octave + 1) + chord.rootSemitone;
-  const targetPitches = chord.intervals.map((interval) => rootMidi + interval).sort((a, b) => a - b);
-  if (!previousPitches || previousPitches.length !== targetPitches.length) return targetPitches;
-
-  const upperPitchChoices = targetPitches.slice(1).map((pitch) => {
-    const firstPitch = rootMidi + ((pitch - rootMidi % 12 + 12) % 12);
-    const choices: number[] = [];
-    for (let candidate = firstPitch; candidate <= rootMidi + 24; candidate += 12) {
-      choices.push(candidate);
-    }
-    return choices;
-  });
-
-  let bestPitches = targetPitches;
-  let bestCost = Number.POSITIVE_INFINITY;
-  for (const third of upperPitchChoices[0]) {
-    for (const fifth of upperPitchChoices[1]) {
-      const candidate = [rootMidi, third, fifth].sort((a, b) => a - b);
-      if (candidate[2] - candidate[0] > 19) continue;
-
-      const movement = candidate.reduce(
-        (total, pitch, index) => total + Math.abs(pitch - previousPitches[index]),
-        0,
-      );
-      const distanceFromSelectedOctave = candidate.reduce(
-        (total, pitch, index) => total + Math.abs(pitch - targetPitches[index]),
-        0,
-      );
-      const cost = movement + distanceFromSelectedOctave * 0.2;
-      if (cost < bestCost) {
-        bestCost = cost;
-        bestPitches = candidate;
-      }
-    }
-  }
-
-  return bestPitches;
+  return chord.intervals
+    .map((interval) => rootMidi + interval)
+    .sort((first, second) => first - second);
 }
